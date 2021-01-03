@@ -4,25 +4,32 @@ const colors = document.getElementsByClassName("jsColor");
 const range = document.getElementById("jsRange");
 const mode = document.getElementById("jsMode");
 const saveBtn = document.getElementById("jsSave");
+const clearBtn = document.getElementById("jsClear");
 
 const INITIAL_COLOR = "#2c2c2c";
 const CANVAS_SIZE = 700;
 
+const CANVAS_OFFSET_X = (window.innerWidth - canvas.offsetWidth) / 2;
+const CANVAS_OFFSET_Y = canvas.offsetTop;
+
 // set default context & canvas
-ctx.fillStyle = "white";
-ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-ctx.strokeStyle = INITIAL_COLOR;
-ctx.fillStyle = INITIAL_COLOR;
 ctx.lineWidth = 2.5;
+ctx.fillStyle = "white";
+ctx.strokeStyle = INITIAL_COLOR;
+ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 // set canvas size to give size information to pixel modifier.
-canvas.width = CANVAS_SIZE;
-canvas.height = CANVAS_SIZE;
+canvas.width = canvas.offsetWidth;
+canvas.height = canvas.offsetHeight;
 
 let painting = false;
 let filling = false;
-
 let ongoingTouches = [];
+
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
 
 function stopPainting() {
   painting = false;
@@ -76,7 +83,7 @@ function handleModeClick(event) {
 
 function handleCanvasClick() {
   if (filling === true) {
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 }
 
@@ -84,7 +91,7 @@ function handleCM(event) {
   event.preventDefault();
 }
 
-function handleSaveClick(event) {
+function handleSaveClick() {
   const image = canvas.toDataURL("image/png");
   const link = document.createElement("a");
   link.href = image;
@@ -92,19 +99,30 @@ function handleSaveClick(event) {
   link.click();
 }
 
-function handleStart(evt) {
-  evt.preventDefault();
-  console.log("touchstart.");
-  let touches = evt.changedTouches;
+/* Below functions are some manipulations of mobile environment. */
+function handleClearClick() {
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function handleStart(event) {
+  event.preventDefault();
+  let touches = event.changedTouches;
 
   for (let i = 0; i < touches.length; i++) {
     ongoingTouches.push(copyTouch(touches[i]));
     ctx.beginPath();
-    ctx.arc(touches[i].pageX, touches[i].pageY, 1, 0, 2 * Math.PI, false); // a circle at the start
+    ctx.arc(
+      touches[i].pageX - CANVAS_OFFSET_X,
+      touches[i].pageY - CANVAS_OFFSET_Y,
+      1,
+      1,
+      2 * Math.PI,
+      false
+    ); // a circle at the start
     ctx.fill();
 
     if (filling === true) {
-      // check filling status at beginning.
       handleCanvasClick();
     }
   }
@@ -119,8 +137,24 @@ function handleMove(evt) {
 
     if (idx >= 0) {
       ctx.beginPath();
-      ctx.moveTo(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY);
-      ctx.lineTo(touches[i].pageX, touches[i].pageY);
+      console.log(ongoingTouches[idx]);
+      console.log(
+        "ctx.moveTo(" +
+          ongoingTouches[idx].pageX -
+          CANVAS_OFFSET_X +
+          ", " +
+          ongoingTouches[idx].pageY -
+          CANVAS_OFFSET_Y +
+          ");"
+      );
+      ctx.moveTo(
+        ongoingTouches[idx].pageX - CANVAS_OFFSET_X,
+        ongoingTouches[idx].pageY - CANVAS_OFFSET_Y
+      );
+      ctx.lineTo(
+        touches[i].pageX - CANVAS_OFFSET_X,
+        touches[i].pageY - CANVAS_OFFSET_Y
+      );
       ctx.stroke();
 
       ongoingTouches.splice(idx, 1, copyTouch(touches[i])); // swap in the new touch record
@@ -139,7 +173,7 @@ function handleEnd(evt) {
       ctx.beginPath();
       ctx.moveTo(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY);
       ctx.lineTo(touches[i].pageX, touches[i].pageY);
-      ctx.fillRect(touches[i].pageX - 4, touches[i].pageY - 4, 2, 1); // and a square at the end
+      //   ctx.fillRect(touches[i].pageX - 4, touches[i].pageY - 4, 1, 0); // and a square at the end
       ongoingTouches.splice(idx, 1); // remove it; we're done
     }
   }
@@ -186,6 +220,10 @@ if (canvas) {
   canvas.addEventListener("touchmove", handleMove);
 }
 
+if (canvas.getContext) {
+  window.addEventListener("resize", resizeCanvas);
+}
+
 //* Array.from(object): object로부터 array를 만든다.
 /*
 It's just an easier way of registering an event on each button, 
@@ -205,4 +243,8 @@ if (mode) {
 
 if (saveBtn) {
   saveBtn.addEventListener("click", handleSaveClick);
+}
+
+if (saveBtn) {
+  clearBtn.addEventListener("click", handleClearClick);
 }
