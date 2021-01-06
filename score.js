@@ -5,8 +5,11 @@ function saveScore(score) {
 	const currentHighScore = loadScore(); 
 
 	if (inputString === "Y" || inputString === "y") {
-		if (currentHighScore < score)
-		localStorage.setItem(PREV_SCORE, score);
+		if (currentHighScore === "N/R") {
+			localStorage.setItem(PREV_SCORE, score);
+		} else if (parseInt(currentHighScore) < score){
+			localStorage.setItem(PREV_SCORE, score);
+		}
 	}	
 }
 
@@ -16,6 +19,6 @@ function loadScore() {
 	if (currentHighScore !== null) {
 		return currentHighScore;
 	} else {
-		return "Not Registered.";
+		return "N/R";
 	}
 }
